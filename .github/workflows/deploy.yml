@@ -5,7 +5,7 @@ on:
       - main
 jobs:
   deploy:
-    runs-on: [self-hosted, ubuntu-latest]
+    runs-on: self-hosted
 
     steps:
       - name: Checkout code
@@ -17,26 +17,37 @@ jobs:
       - name: Save Docker image to tar
         run: docker save next-app > next-app.tar
 
-      - name: Copy image to server
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.SERVER_IP }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SERVER_SSH_KEY }}
-          source: "next-app.tar"
-          target: "/tmp"
-
-      - name: SSH deploy
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.SERVER_IP }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SERVER_SSH_KEY }}
-          script: |
+      - name: Upload + deploy
+        run: |
+          scp next-app.tar ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}:/tmp
+          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
             docker load < /tmp/next-app.tar
             docker stop next-app || true
             docker rm next-app || true
             docker run -d --name next-app -p 3000:3000 next-app
+          EOF
+#      - name: Copy image to server
+#        run: |
+#          scp -o StrictHostKeyChecking=no next-app.tar \
+#          ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}:/tmp
+#        with:
+#          host: ${{ secrets.SERVER_IP }}
+#          username: ${{ secrets.SERVER_USER }}
+#          key: ${{ secrets.SERVER_SSH_KEY }}
+#          source: "next-app.tar"
+#          target: "/tmp"
+#
+#      - name: SSH deploy
+#        uses: appleboy/ssh-action@v1.0.3
+#        with:
+#          host: ${{ secrets.SERVER_IP }}
+#          username: ${{ secrets.SERVER_USER }}
+#          key: ${{ secrets.SERVER_SSH_KEY }}
+#          script: |
+#            docker load < /tmp/next-app.tar
+#            docker stop next-app || true
+#            docker rm next-app || true
+#            docker run -d --name next-app -p 3000:3000 next-app
 #jobs:
 #  build:
 #    runs-on: self-hosted
