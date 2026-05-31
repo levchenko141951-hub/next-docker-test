@@ -3,26 +3,59 @@ on:
   push:
     branches:
       - main
-
 jobs:
-  build:
-    runs-on: self-hosted
+  deploy:
+    runs-on: alpine-latest
+
     steps:
-      - uses: actions/checkout@v3
-      - run: docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
-      - run: docker build -t next-app -f Dockerfile .
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-      - name: Generate deployment package
-        run: zip -r deploy.zip . -x '*.git*'
+      - name: Build Docker image
+        run: docker build -t next-app .
 
-      - name: Deploy to EB
-        uses: einaregilsson/beanstalk-deploy@v18
+      - name: Save Docker image to tar
+        run: docker save next-app > next-app.tar
+
+      - name: Copy image to server
+        uses: appleboy/scp-action@v0.1.7
         with:
-          application_name: docker-gh
-          environment_name: Dockergh-env
-          existing_bucket_name: elasticbeanstalk-us-east-1-923445559289
-          region: us-east-1
-          version_label: ${{ github.sha }}
-          deployment_package: deploy.zip
-          aws_secret_key: ''
-          aws_access_key: ''
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          source: "next-app.tar"
+          target: "/tmp"
+
+      - name: SSH deploy
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            docker load < /tmp/next-app.tar
+            docker stop next-app || true
+            docker rm next-app || true
+            docker run -d --name next-app -p 3000:3000 next-app
+#jobs:
+#  build:
+#    runs-on: self-hosted
+#    steps:
+#      - uses: actions/checkout@v3
+#      - run: docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
+#      - run: docker build -t next-app -f Dockerfile .
+#
+#      - name: Generate deployment package
+#        run: zip -r deploy.zip . -x '*.git*'
+#
+#      - name: Deploy to EB
+#        uses: einaregilsson/beanstalk-deploy@v18
+#        with:
+#          application_name: docker-gh
+#          environment_name: Dockergh-env
+#          existing_bucket_name: elasticbeanstalk-us-east-1-923445559289
+#          region: us-east-1
+#          version_label: ${{ github.sha }}
+#          deployment_package: deploy.zip
+#          aws_secret_key: ''
+#          aws_access_key: ''
