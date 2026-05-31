@@ -21,11 +21,11 @@ jobs:
 
       - name: Deploy
         run: |
-          ssh user@server "
+          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} "
             docker login ghcr.io -u ${{ secrets.USER }} -p ${{ secrets.PASS }}
-            docker pull ghcr.io/prodlevdev/next-app:${{ github.sha }} &&
+            docker pull ghcr.io/${{ secrets.USER }}/next-app:${{ github.sha }} &&
             docker stop next-app || true &&
-            docker run -d -p 80:80 --name next-app ghcr.io/prodlevdev/next-app:${{ github.sha }}
+            docker run -d -p 80:80 --name next-app ghcr.io/${{ secrets.USER }}/next-app:${{ github.sha }}
           "
 
 #      - name: Build Docker image
