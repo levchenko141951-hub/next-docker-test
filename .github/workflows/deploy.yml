@@ -8,23 +8,23 @@ jobs:
     runs-on: self-hosted
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
       - name: Build Docker image
-        run: docker build -t next-app .
+        run: docker build -t next-app:${{ github.sha }} .
 
       - name: Save Docker image to tar
-        run: docker save next-app > next-app.tar
+        run: docker save next-app:${{ github.sha }} > next-app:${{ github.sha }}.tar
 
       - name: Upload + deploy
         run: |
           scp next-app.tar ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}:/tmp
+          
           ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
-            docker load < /tmp/next-app.tar
-            docker stop next-app || true
+            docker stop $(docker ps -q) || true
             docker rm next-app || true
-            docker run -d --name next-app -p 80:80 next-app
+            docker load < /tmp/next-app:${{ github.sha }}.tar
+            docker run -d --name next-app -p 80:80 --restart unless-stopped next-app:${{ github.sha }}
           EOF
 #      - name: Copy image to server
 #        run: |
