@@ -23,9 +23,7 @@ jobs:
         run: |
           ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} "
             docker login ghcr.io -u ${{ secrets.USER }} -p ${{ secrets.PASS }}
-            docker stop $(docker ps -q --filter "publish=80") 2>/dev/null || true
-            docker rm -f $(docker ps -aq --filter "publish=80") 2>/dev/null || true
-            docker rm -f next-app || true && \
+            docker rm -f app || true && \
             docker pull ghcr.io/${{ secrets.USER }}/next-app:${{ github.sha }} &&
             docker run -d -p 80:80 --name next-app ghcr.io/${{ secrets.USER }}/next-app:${{ github.sha }}
           "
