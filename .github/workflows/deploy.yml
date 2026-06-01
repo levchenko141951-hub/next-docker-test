@@ -21,26 +21,12 @@ jobs:
 
       - name: Deploy
         run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SERVER_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
           ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} "
             docker login ghcr.io -u ${{ secrets.USER }} -p ${{ secrets.PASS }}
             docker rm -f next-app || true && \
             docker pull ghcr.io/${{ secrets.USER }}/next-app:${{ github.sha }} &&
             docker run -d -p 80:80 --name next-app ghcr.io/${{ secrets.USER }}/next-app:${{ github.sha }}
           "
-
-#      - name: Build Docker image
-#        run: docker build --no-cache -t next-app-${{ github.sha }} .
-#
-#      - name: Save Docker image to tar
-#        run: docker save next-app-${{ github.sha }} > next-app-${{ github.sha }}.tar
-#
-#      - name: Upload + deploy
-#        run: |
-#          scp next-app-${{ github.sha }}.tar ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}:/tmp
-#
-#          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
-#            docker stop next-app || true
-#            docker rm next-app || true
-#            docker load < /tmp/next-app-${{ github.sha }}.tar
-#            docker run -d --name next-app -p 80:80 --restart unless-stopped next-app-${{ github.sha }}
-#          EOF
