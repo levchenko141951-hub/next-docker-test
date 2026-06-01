@@ -24,8 +24,8 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.SERVER_SSH_KEY }}" | tr -d '\r' > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh ssh -i ~/.ssh/id_rsa \ 
-            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}
+          ssh -i ~/.ssh/id_rsa \ 
+            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} "
             docker login ghcr.io -u ${{ secrets.USER }} -p ${{ secrets.PASS }}
             docker rm -f next-app || true && \
             docker pull ghcr.io/${{ secrets.USER }}/next-app:${{ github.sha }} &&
